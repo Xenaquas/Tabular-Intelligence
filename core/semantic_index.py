@@ -36,7 +36,8 @@ class SemanticValueIndex:
             
         self.metadata = records
         self.indexed_columns = sorted(list(set(col for col, _ in records)))
-        texts = [f"{col}: {val}" for col, val in records]
+        # Prepend Nomic search_document prefix for asymmetric retrieval
+        texts = [f"search_document: {col}: {val}" for col, val in records]
         
         if FAISS_AVAILABLE:
             try:
@@ -65,12 +66,33 @@ class SemanticValueIndex:
         
         for col in df.columns:
             dtype = df[col].dtype
-            if pd.api.types.is_object_dtype(dtype) or pd.api.types.is_string_dtype(dtype) or pd.api.types.is_categorical_dtype(dtype):
+            if pd.api.types.is_object_dtype(dtype) or pd.api.types.is_string_dtype(dtype) or isinstance(dtype, pd.CategoricalDtype):
                 unique_vals = [str(v).strip() for v in df[col].dropna().unique() if str(v).strip()]
                 if 1 <= len(unique_vals) <= max_cardinality:
                     for val in unique_vals:
                         records.append((col, val))
                         
+        self.build_index(records)
+        return {
+            "indexed_columns": self.indexed_columns,
+            "total_entities": len(self.metadata),
+            "vector_mode": self.vector_enabled
+        }
+
+    def build_index_from_tables(self, tables: Dict[str, pd.DataFrame], max_cardinality: int = 2000) -> Dict[str, Any]:
+        """Scans multiple DataFrames (e.g. from relational Oracle schema) for categorical columns and builds index."""
+        records: List[Tuple[str, str]] = []
+        for tbl_name, df in tables.items():
+            for col in df.columns:
+                dtype = df[col].dtype
+                if pd.api.types.is_object_dtype(dtype) or pd.api.types.is_string_dtype(dtype) or isinstance(dtype, pd.CategoricalDtype):
+                    unique_vals = [str(v).strip() for v in df[col].dropna().unique() if str(v).strip()]
+                    if 1 <= len(unique_vals) <= max_cardinality:
+                        for val in unique_vals:
+                            records.append((f"{tbl_name}.{col}", val))
+                            records.append((col, val))
+        # Deduplicate preserving order
+        records = list(dict.fromkeys(records))
         self.build_index(records)
         return {
             "indexed_columns": self.indexed_columns,
@@ -92,19 +114,21 @@ class SemanticValueIndex:
         # 1. Vector Search via Nomic Embeddings + FAISS
         if self.vector_enabled and self.index is not None and self.index.ntotal > 0:
             try:
-                query_emb = np.array(self.client.get_embeddings([clean_query]), dtype="float32")
+                # Prepend Nomic search_query prefix for asymmetric retrieval
+                query_emb = np.array(self.client.get_embeddings([f"search_query: {clean_query}"]), dtype="float32")
                 faiss.normalize_L2(query_emb)
                 scores, indices = self.index.search(query_emb, min(top_k, self.index.ntotal))
                 
                 for score, idx in zip(scores[0], indices[0]):
                     if idx != -1 and idx < len(self.metadata):
                         col, val = self.metadata[idx]
-                        if float(score) >= 0.55: # Cosine similarity threshold
+                        clean_v = val.replace("'", "''")
+                        if float(score) >= 0.40: # Cosine similarity threshold for asymmetric Nomic embeddings
                             results.append({
                                 "column": col,
                                 "value": val,
                                 "score": float(score),
-                                "sql_clause": f"{col} = '{val.replace("'", "''")}'"
+                                "sql_clause": f"{col} = '{clean_v}'"
                             })
                 if results:
                     return results

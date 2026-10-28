@@ -44,7 +44,8 @@ def create_profiler_agent(api_key: Optional[str] = None, model_id: Optional[str]
     return Agent(
         model=model,
         tools=tools,
-        system_prompt=PROFILER_SYSTEM_PROMPT
+        system_prompt=PROFILER_SYSTEM_PROMPT,
+        callback_handler=None
     )
 
 def run_profiler(task_description: str, api_key: Optional[str] = None, model_id: Optional[str] = None) -> str:

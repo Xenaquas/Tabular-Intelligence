@@ -28,10 +28,27 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 AWS_SESSION_TOKEN = os.getenv("AWS_SESSION_TOKEN", "")
 
-# Default Bedrock Model for Multi-Agent Swarm
-SUPERVISOR_MODEL = BEDROCK_MODEL_ID
-SUBAGENT_MODEL = BEDROCK_MODEL_ID
-FALLBACK_MODEL = BEDROCK_MODEL_ID
+# =========================================================================
+# Model Provider Configuration (OpenRouter and Amazon Bedrock)
+# =========================================================================
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
+# Provider selection: "openrouter" or "bedrock"
+# Defaults to "openrouter" if OPENROUTER_API_KEY is present, else "bedrock"
+_default_provider = "openrouter" if bool(OPENROUTER_API_KEY.strip()) else "bedrock"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", _default_provider).lower().strip()
+
+# Active default model based on provider
+if LLM_PROVIDER == "openrouter":
+    SUPERVISOR_MODEL = os.getenv("SUPERVISOR_MODEL", os.getenv("OPENROUTER_MODEL", OPENROUTER_MODEL))
+    SUBAGENT_MODEL = os.getenv("SUBAGENT_MODEL", os.getenv("OPENROUTER_MODEL", OPENROUTER_MODEL))
+    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", os.getenv("OPENROUTER_MODEL", OPENROUTER_MODEL))
+else:
+    SUPERVISOR_MODEL = os.getenv("SUPERVISOR_MODEL", os.getenv("MODEL_ID", BEDROCK_MODEL_ID))
+    SUBAGENT_MODEL = os.getenv("SUBAGENT_MODEL", os.getenv("MODEL_ID", BEDROCK_MODEL_ID))
+    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", os.getenv("MODEL_ID", BEDROCK_MODEL_ID))
 
 # =========================================================================
 # Local Nomic Embedding Server (Port 8088 / Llama CPP)
@@ -40,11 +57,20 @@ NOMIC_EMBED_BASE_URL = os.getenv("NOMIC_EMBED_BASE_URL", "http://127.0.0.1:8088/
 NOMIC_EMBED_MODEL = os.getenv("NOMIC_EMBED_MODEL", "nomic-ai/nomic-embed-text-v1.5-GGUF:Q4_K_M")
 
 # =========================================================================
-# Legacy OpenRouter Settings (Commented out for Bedrock deployment)
+# Local Oracle Database Configuration (python-oracledb)
 # =========================================================================
-# Kept defined (empty by default) so legacy imports in supervisor.py / demo_live_swarm.py resolve.
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-# OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+ORACLE_HOST = os.getenv("ORACLE_HOST", "127.0.0.1")
+ORACLE_PORT = int(os.getenv("ORACLE_PORT", "1521"))
+ORACLE_SERVICE_NAME = os.getenv("ORACLE_SERVICE_NAME", "FREEPDB1")
+ORACLE_USER = os.getenv("ORACLE_USER", "TABULA_DEMO_RO")
+ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD", "")
+ORACLE_SCHEMA = os.getenv("ORACLE_SCHEMA", "TABULA_DEMO_OWNER")
+ORACLE_ALLOWED_SCHEMAS = [s.strip().upper() for s in os.getenv("ORACLE_ALLOWED_SCHEMAS", "TABULA_DEMO_OWNER").split(",") if s.strip()]
+ORACLE_ALLOWED_TABLES = [t.strip().upper() for t in os.getenv("ORACLE_ALLOWED_TABLES", "USERS,CLAIMS").split(",") if t.strip()]
+ORACLE_MODE = os.getenv("ORACLE_MODE", "thin").lower()
+ORACLE_POOL_MIN = int(os.getenv("ORACLE_POOL_MIN", "1"))
+ORACLE_POOL_MAX = int(os.getenv("ORACLE_POOL_MAX", "4"))
+ORACLE_TIMEOUT_SECONDS = float(os.getenv("ORACLE_TIMEOUT_SECONDS", "30.0"))
 
 # Reserved settings; the active agents/index do not enforce these values yet.
 MAX_CATEGORICAL_CARDINALITY = int(os.getenv("MAX_CATEGORICAL_CARDINALITY", "2000"))

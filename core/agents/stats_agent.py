@@ -54,7 +54,8 @@ def create_stats_agent(api_key: Optional[str] = None, model_id: Optional[str] = 
     return Agent(
         model=model,
         tools=tools,
-        system_prompt=STATS_SYSTEM_PROMPT
+        system_prompt=STATS_SYSTEM_PROMPT,
+        callback_handler=None
     )
 
 def run_stats_visualizer(task_description: str, api_key: Optional[str] = None, model_id: Optional[str] = None) -> str:

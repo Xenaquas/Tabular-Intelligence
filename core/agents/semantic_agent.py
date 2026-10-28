@@ -17,17 +17,39 @@ except ImportError:
     def tool(func):
         return func
 
-_semantic_index_instance: Optional[SemanticValueIndex] = None
+_fallback_semantic_index: Optional[SemanticValueIndex] = None
 
 def get_semantic_index() -> SemanticValueIndex:
-    global _semantic_index_instance
-    if _semantic_index_instance is None:
-        _semantic_index_instance = SemanticValueIndex()
-    return _semantic_index_instance
+    """Returns the current session's semantic index if inside an ExecutionContext,
+
+    or the thread/fallback index.
+    """
+    try:
+        from core.execution_context import get_current_context
+        ctx = get_current_context()
+        if ctx is not None and ctx.semantic_index is not None:
+            return ctx.semantic_index
+    except ImportError:
+        pass
+
+    global _fallback_semantic_index
+    if _fallback_semantic_index is None:
+        _fallback_semantic_index = SemanticValueIndex()
+    return _fallback_semantic_index
 
 def set_semantic_index(index: SemanticValueIndex):
-    global _semantic_index_instance
-    _semantic_index_instance = index
+    """Sets the semantic index for the active ExecutionContext or fallback instance."""
+    try:
+        from core.execution_context import get_current_context
+        ctx = get_current_context()
+        if ctx is not None:
+            ctx.semantic_index = index
+            return
+    except ImportError:
+        pass
+
+    global _fallback_semantic_index
+    _fallback_semantic_index = index
 
 @tool
 def lookup_categorical_entity(query_term: str) -> str:
@@ -68,7 +90,8 @@ def create_semantic_agent(api_key: Optional[str] = None, model_id: Optional[str]
     return Agent(
         model=model,
         tools=tools,
-        system_prompt=SEMANTIC_SYSTEM_PROMPT
+        system_prompt=SEMANTIC_SYSTEM_PROMPT,
+        callback_handler=None
     )
 
 def run_semantic_resolver(task_description: str, api_key: Optional[str] = None, model_id: Optional[str] = None) -> str:

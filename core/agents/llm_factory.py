@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import boto3
 from dotenv import load_dotenv
 from config import (
@@ -9,6 +9,10 @@ from config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     AWS_SESSION_TOKEN,
+    OPENROUTER_API_KEY,
+    OPENROUTER_BASE_URL,
+    OPENROUTER_MODEL,
+    LLM_PROVIDER,
     logger
 )
 
@@ -24,9 +28,90 @@ except ImportError:
         BedrockModel = None
 
 try:
+    from strands.models.openai import OpenAIModel
+except ImportError:
+    try:
+        from strands.models import OpenAIModel
+    except ImportError:
+        OpenAIModel = None
+
+try:
     from langchain_aws import ChatBedrockConverse
 except ImportError:
     ChatBedrockConverse = None
+
+from dataclasses import dataclass
+
+@dataclass
+class ModelCapability:
+    """Capability contract describing model features, token limits, and orchestration parameters."""
+    model_id: str
+    provider: str
+    context_window: int
+    supports_tools: bool
+    supports_streaming: bool
+    supports_system_prompt: bool
+    recommended_temperature: float = 0.0
+
+# Supported Model Capability Registry
+MODEL_REGISTRY: Dict[str, ModelCapability] = {
+    # Amazon Bedrock Primary Models
+    "anthropic.claude-3-5-haiku-20241022-v1:0": ModelCapability(
+        model_id="anthropic.claude-3-5-haiku-20241022-v1:0",
+        provider="bedrock",
+        context_window=200_000,
+        supports_tools=True,
+        supports_streaming=True,
+        supports_system_prompt=True,
+        recommended_temperature=0.0
+    ),
+    "anthropic.claude-haiku-4-5": ModelCapability(
+        model_id="anthropic.claude-haiku-4-5",
+        provider="bedrock",
+        context_window=200_000,
+        supports_tools=True,
+        supports_streaming=True,
+        supports_system_prompt=True,
+        recommended_temperature=0.0
+    ),
+    "bedrock.gpt-5-6-luna": ModelCapability(
+        model_id="bedrock.gpt-5-6-luna",
+        provider="bedrock",
+        context_window=128_000,
+        supports_tools=True,
+        supports_streaming=True,
+        supports_system_prompt=True,
+        recommended_temperature=0.0
+    ),
+    "bedrock.moonshot-kimi-k3": ModelCapability(
+        model_id="bedrock.moonshot-kimi-k3",
+        provider="bedrock",
+        context_window=128_000,
+        supports_tools=True,
+        supports_streaming=True,
+        supports_system_prompt=True,
+        recommended_temperature=0.0
+    ),
+    # OpenRouter Configurable Secondary Models
+    "openai/gpt-4o-mini": ModelCapability(
+        model_id="openai/gpt-4o-mini",
+        provider="openrouter",
+        context_window=128_000,
+        supports_tools=True,
+        supports_streaming=True,
+        supports_system_prompt=True,
+        recommended_temperature=0.0
+    ),
+    "anthropic/claude-3.5-haiku": ModelCapability(
+        model_id="anthropic/claude-3.5-haiku",
+        provider="openrouter",
+        context_window=200_000,
+        supports_tools=True,
+        supports_streaming=True,
+        supports_system_prompt=True,
+        recommended_temperature=0.0
+    ),
+}
 
 def get_bedrock_session(
     region_name: Optional[str] = None,
@@ -149,5 +234,79 @@ def get_bedrock_converse_llm(
         max_tokens=4000
     )
 
-# Alias for backwards-compatibility across agent factories
-get_openrouter_model = get_bedrock_model
+def get_openrouter_model(
+    model_name: Optional[str] = None,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    temperature: float = 0.0,
+    max_tokens: int = 4000,
+    **kwargs
+) -> Any:
+    """
+    Initializes a Strands OpenAIModel configured for OpenRouter OpenAI-compatible API execution.
+    """
+    if OpenAIModel is None:
+        raise ImportError(
+            "strands-agents OpenAI provider is required for OpenRouter integration. "
+            "Run `pip install 'strands-agents[openai]'`."
+        )
+
+    active_api_key = (api_key or OPENROUTER_API_KEY or os.getenv("OPENROUTER_API_KEY", "")).strip()
+    if not active_api_key:
+        raise ValueError(
+            "OpenRouter API key is missing. Set OPENROUTER_API_KEY in .env or pass api_key explicitly."
+        )
+
+    active_model = (model_name or OPENROUTER_MODEL or os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")).strip()
+    active_base_url = (base_url or OPENROUTER_BASE_URL or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")).strip()
+
+    logger.info(f"Initializing OpenRouter model: '{active_model}' via {active_base_url}")
+
+    return OpenAIModel(
+        model_id=active_model,
+        client_args={
+            "api_key": active_api_key,
+            "base_url": active_base_url,
+        },
+        params={
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+    )
+
+def get_model_capability(model_id: str) -> Optional[ModelCapability]:
+    """Retrieves capability contract for a designated model ID."""
+    return MODEL_REGISTRY.get(model_id)
+
+def list_supported_models() -> List[str]:
+    """Lists all registered models across primary (Bedrock) and secondary (OpenRouter) providers."""
+    return list(MODEL_REGISTRY.keys())
+
+def get_model(
+    model_name: Optional[str] = None,
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    region: Optional[str] = None,
+    role_arn: Optional[str] = None,
+    **kwargs
+) -> Any:
+    """
+    Unified model factory supporting configurable providers:
+    - "openrouter" -> OpenRouter (default for local evaluation)
+    - "bedrock"    -> Amazon Bedrock (existing supported provider)
+    """
+    resolved_provider = (provider or LLM_PROVIDER or "bedrock").lower().strip()
+
+    # Route based on model naming if provider not explicitly specified
+    if provider is None and model_name:
+        if "/" in model_name or model_name.startswith(("gpt-", "deepseek", "claude-3-5", "claude-3-7")):
+            resolved_provider = "openrouter"
+        elif "anthropic." in model_name or "amazon." in model_name or "meta." in model_name:
+            resolved_provider = "bedrock"
+
+    if resolved_provider == "openrouter":
+        return get_openrouter_model(model_name=model_name, api_key=api_key, **kwargs)
+    elif resolved_provider == "bedrock":
+        return get_bedrock_model(model_name=model_name, region=region, role_arn=role_arn, api_key=api_key, **kwargs)
+    else:
+        raise ValueError(f"Unsupported LLM provider '{resolved_provider}'. Choose 'openrouter' or 'bedrock'.")

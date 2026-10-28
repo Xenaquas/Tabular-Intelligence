@@ -41,19 +41,31 @@ class ArtifactStore:
 
     def __init__(self):
         self._data: Dict[str, Any] = {
+            "status": "success",
             "last_sql": None,
             "last_dataframe": None,
             "last_chart_spec": None,
             "last_chart_type": None,
             "last_chart_title": None,
             "agent_trace": [],
-            "error": None
+            "error": None,
+            "error_type": None,
+            "total_rows": 0,
+            "is_truncated": False
         }
         self._listeners: List[Callable[[Dict[str, Any]], None]] = []
         self._store_lock = threading.Lock()
 
     @classmethod
     def get_instance(cls) -> "ArtifactStore":
+        try:
+            from core.execution_context import get_current_context
+            ctx = get_current_context()
+            if ctx is not None and ctx.artifact_store is not None:
+                return ctx.artifact_store
+        except ImportError:
+            pass
+
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls()
@@ -80,13 +92,17 @@ class ArtifactStore:
         """Resets the artifact store for a new conversational turn."""
         with self._store_lock:
             self._data = {
+                "status": "success",
                 "last_sql": None,
                 "last_dataframe": None,
                 "last_chart_spec": None,
                 "last_chart_type": None,
                 "last_chart_title": None,
                 "agent_trace": [],
-                "error": None
+                "error": None,
+                "error_type": None,
+                "total_rows": 0,
+                "is_truncated": False
             }
 
     def add_trace(self, agent_name: str, action: str, details: str, status: str = "complete"):
@@ -111,12 +127,17 @@ class ArtifactStore:
             except Exception as e:
                 logger.debug(f"Error in trace listener: {e}")
 
-    def set_sql(self, sql_query: str, result_df: Optional[pd.DataFrame] = None):
-        """Sets the last generated SQL and associated result dataframe."""
+    def set_sql(self, sql_query: str, result_df: Optional[pd.DataFrame] = None, total_rows: int = 0, is_truncated: bool = False):
+        """Sets the last generated SQL and associated result dataframe with provenance and completeness metadata."""
         with self._store_lock:
             self._data["last_sql"] = sql_query
             if result_df is not None:
                 self._data["last_dataframe"] = result_df
+                self._data["total_rows"] = total_rows or len(result_df)
+                self._data["is_truncated"] = is_truncated
+            self._data["error"] = None
+            self._data["error_type"] = None
+            self._data["status"] = "success"
 
     def set_chart(self, chart_spec: Any, chart_type: str, title: str):
         """Stores the last generated Plotly chart figure or JSON spec."""
@@ -125,10 +146,17 @@ class ArtifactStore:
             self._data["last_chart_type"] = chart_type
             self._data["last_chart_title"] = title
 
-    def set_error(self, error_message: str):
-        """Sets error details."""
+    def set_error(self, error_message: str, error_type: str = "EXECUTION_ERROR", status: str = "failure"):
+        """Sets error details and structured failure status."""
         with self._store_lock:
             self._data["error"] = error_message
+            self._data["error_type"] = error_type
+            self._data["status"] = status
+
+    def set_status(self, status: str):
+        """Sets the current execution status (success, failure, rejected_query, timeout, etc.)."""
+        with self._store_lock:
+            self._data["status"] = status
 
     def get_all(self) -> Dict[str, Any]:
         """Returns snapshot of current turn artifacts."""

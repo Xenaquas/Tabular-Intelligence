@@ -6,7 +6,7 @@ try:
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
-from core.db_engine import DatabaseEngine
+from core.contracts import AnalyticsInput, resolve_data_source
 from core.tools.artifact_store import ArtifactStore, safe_df_to_markdown
 from config import logger
 
@@ -29,11 +29,10 @@ def calculate_correlation_matrix(table_name: str, method: str = "pearson") -> st
     Returns:
         str: Markdown correlation matrix and top strongly correlated pairs.
     """
-    engine = DatabaseEngine.get_instance()
     store = ArtifactStore.get_instance()
     store.add_trace("Stats Agent", "Correlation Analysis", f"Calculating {method} correlation on {table_name}")
     
-    df, err = engine.execute_sql(f"SELECT * FROM {table_name}")
+    df, err = AnalyticsInput.get_dataframe(table_name)
     if err or df is None or df.empty:
         return f"Error retrieving data for correlation: {err}"
         
@@ -91,15 +90,13 @@ def detect_outliers_iqr_zscore(table_name: str, column_name: str, method: str = 
     Returns:
         str: Outlier summary, statistical cutoff boundaries, outlier count, percentage, and extreme sample values.
     """
-    engine = DatabaseEngine.get_instance()
     store = ArtifactStore.get_instance()
     store.add_trace("Stats Agent", "Outlier Detection", f"Testing column {column_name} using {method}")
     
-    df, err = engine.execute_sql(f"SELECT {column_name} FROM {table_name} WHERE {column_name} IS NOT NULL")
-    if err or df is None or df.empty:
+    series, err = AnalyticsInput.get_numeric_series(table_name, column_name)
+    if err or series is None or series.empty:
         return f"Error retrieving column data: {err}"
         
-    series = df[column_name].astype(float)
     total_count = len(series)
     
     if total_count == 0:
@@ -158,12 +155,9 @@ def calculate_distribution_stats(table_name: str, column_name: str) -> str:
     Returns:
         str: Formatted statistical distribution profile with skewness interpretation.
     """
-    engine = DatabaseEngine.get_instance()
-    df, err = engine.execute_sql(f"SELECT {column_name} FROM {table_name} WHERE {column_name} IS NOT NULL")
-    if err or df is None or df.empty:
+    series, err = AnalyticsInput.get_numeric_series(table_name, column_name)
+    if err or series is None or series.empty:
         return f"Error retrieving data: {err}"
-        
-    series = df[column_name].astype(float)
     
     mean_val = series.mean()
     median_val = series.median()
@@ -206,7 +200,7 @@ def calculate_growth_metrics(table_name: str, time_column: str, metric_column: s
     Returns:
         str: Formatted Markdown growth table with period-over-period percentage delta.
     """
-    engine = DatabaseEngine.get_instance()
+    ds = resolve_data_source()
     
     if group_by_column:
         query = f"""
@@ -255,7 +249,7 @@ def calculate_growth_metrics(table_name: str, time_column: str, metric_column: s
         ORDER BY {time_column};
         """
         
-    df, err = engine.execute_sql(query)
+    df, err = ds.execute_sql(query)
     if err or df is None:
         return f"Error computing growth metrics: {err}"
         

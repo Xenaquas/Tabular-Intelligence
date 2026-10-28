@@ -16,6 +16,9 @@ from config import (
     AWS_ROLE_ARN,
     SUPERVISOR_MODEL,
     SUBAGENT_MODEL,
+    OPENROUTER_API_KEY,
+    OPENROUTER_MODEL,
+    LLM_PROVIDER,
     logger
 )
 
@@ -24,6 +27,7 @@ from core.semantic_index import SemanticValueIndex
 from core.agents.semantic_agent import set_semantic_index
 from core.agents.supervisor import OrchestratorSupervisor
 from core.tools.artifact_store import ArtifactStore
+from core.execution_context import ExecutionContext, SessionRegistry
 
 # --- 1. Streamlit Configuration
 st.set_page_config(
@@ -147,9 +151,34 @@ st.markdown("""
 
 # --- 3. Session State Initialization
 def init_session():
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
+
+    if "provider" not in st.session_state:
+        st.session_state.provider = "openrouter" if bool(OPENROUTER_API_KEY) else "bedrock"
+
+    if "supervisor_model" not in st.session_state:
+        st.session_state.supervisor_model = SUPERVISOR_MODEL
+
+    if "subagent_model" not in st.session_state:
+        st.session_state.subagent_model = SUBAGENT_MODEL
+
+    ctx = SessionRegistry.get_or_create(
+        session_id=st.session_state.session_id,
+        model_config={
+            "supervisor": st.session_state.supervisor_model,
+            "sql": st.session_state.supervisor_model,
+            "profiler": st.session_state.subagent_model,
+            "semantic": st.session_state.subagent_model,
+            "stats": st.session_state.subagent_model
+        },
+        api_key=OPENROUTER_API_KEY
+    )
+    st.session_state.ctx = ctx
+
     defaults = {
-        "db_engine": DatabaseEngine.get_instance(),
-        "semantic_index": None,
+        "db_engine": ctx.db_engine,
+        "semantic_index": ctx.semantic_index,
         "active_table": None,
         "active_dataset_name": None,
         "table_metadata": {},
@@ -157,8 +186,6 @@ def init_session():
         "bedrock_model_id": os.getenv("MODEL_ID", BEDROCK_MODEL_ID),
         "aws_region": os.getenv("REGION", AWS_REGION),
         "aws_role_arn": os.getenv("ROLE_ARN", AWS_ROLE_ARN),
-        "supervisor_model": os.getenv("MODEL_ID", BEDROCK_MODEL_ID),
-        "subagent_model": os.getenv("MODEL_ID", BEDROCK_MODEL_ID)
     }
 
     for k, v in defaults.items():
@@ -169,18 +196,14 @@ def init_session():
 init_session()
 
 def load_dataset(df: pd.DataFrame, table_name: str, display_name: str):
-    """Registers dataset in DuckDB and compiles local FAISS semantic index."""
-    meta = st.session_state.db_engine.register_dataframe(df, table_name)
-    st.session_state.table_metadata[table_name] = meta
-    st.session_state.active_table = table_name
-    st.session_state.active_dataset_name = display_name
-    
-    # Build Semantic Index
-    sem_index = SemanticValueIndex()
-    sem_index.build_index_from_dataframe(df, table_name)
-    st.session_state.semantic_index = sem_index
-    set_semantic_index(sem_index)
-    logger.info(f"Loaded dataset '{display_name}' as table '{table_name}'.")
+    """Registers dataset in this session's isolated DuckDB and builds private FAISS index."""
+    ctx = st.session_state.ctx
+    with ctx.activate():
+        meta = ctx.register_dataset(df, table_name, display_name)
+        st.session_state.table_metadata[table_name] = meta
+        st.session_state.active_table = table_name
+        st.session_state.active_dataset_name = display_name
+        logger.info(f"[Session {ctx.session_id[:8]}] Loaded dataset '{display_name}' as table '{table_name}'.")
 
 # Auto-load built-in benchmark dataset on startup
 if not st.session_state.active_table:
@@ -195,7 +218,7 @@ with st.sidebar:
     
     dataset_option = st.radio(
         "Select Active Dataset",
-        ["📦 Built-in Retail Benchmark", "📤 Upload Custom Data"],
+        ["📦 Built-in Retail Benchmark", "🏛️ Oracle Database (FREEPDB1)", "📤 Upload Custom Data"],
         label_visibility="collapsed"
     )
     
@@ -204,6 +227,16 @@ with st.sidebar:
             df_bench = pd.read_csv("data/retail_sales_sample.csv")
             load_dataset(df_bench, "retail_sales", "Retail & E-Commerce Benchmark")
             st.rerun()
+    elif dataset_option == "🏛️ Oracle Database (FREEPDB1)":
+        if st.session_state.get("active_dataset_name") != "Oracle Database (FREEPDB1)":
+            with st.spinner("Connecting to Oracle Database & discovering schema..."):
+                ctx = st.session_state.ctx
+                with ctx.activate():
+                    meta = ctx.register_oracle_source()
+                    st.session_state.active_table = ctx.active_table
+                    st.session_state.active_dataset_name = "Oracle Database (FREEPDB1)"
+                    st.session_state.table_metadata[ctx.active_table] = meta
+                    st.rerun()
     else:
         uploaded_file = st.file_uploader(
             "Upload Excel or CSV file",
@@ -228,26 +261,74 @@ with st.sidebar:
     # Active Dataset Overview Card
     if st.session_state.active_table:
         meta = st.session_state.table_metadata.get(st.session_state.active_table, {})
-        st.markdown(f"**Active Table:** `{st.session_state.active_table}`")
+        is_oracle = "tables" in meta
+        row_cnt = 100 if is_oracle else meta.get('row_count', 0)
+        col_cnt = sum(len(t.get("columns", [])) for t in meta["tables"].values()) if is_oracle else meta.get('column_count', 0)
+        mem_str = "Oracle Free" if is_oracle else f"{meta.get('memory_mb', 0)} MB"
+
+        st.markdown(f"**Active Source:** `{st.session_state.active_table}`")
         st.markdown(f"""
         <div class="metric-grid">
             <div class="metric-card">
-                <div class="metric-value">{meta.get('row_count', 0):,}</div>
-                <div class="metric-label">Rows</div>
+                <div class="metric-value">{row_cnt:,}</div>
+                <div class="metric-label">Total Rows</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value">{meta.get('column_count', 0)}</div>
+                <div class="metric-value">{col_cnt}</div>
                 <div class="metric-label">Columns</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value">{meta.get('memory_mb', 0)} MB</div>
-                <div class="metric-label">Memory</div>
+                <div class="metric-value">{mem_str}</div>
+                <div class="metric-label">Engine</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
+        if is_oracle and meta.get("relationships"):
+            rel = meta["relationships"][0]
+            st.caption(f"🔗 FK: `{rel['from_table']}.{rel['from_column']}` $\\rightarrow$ `{rel['to_table']}.{rel['to_column']}` ({rel['cardinality']})")
+
+    st.markdown("---")
+    st.markdown("### ⚙️ Swarm Provider")
+    provider_labels = ["OpenRouter (Local Evaluation)", "Amazon Bedrock"]
+    curr_prov_idx = 0 if st.session_state.provider == "openrouter" else 1
+    selected_prov_label = st.selectbox("Active Provider", provider_labels, index=curr_prov_idx)
+    new_prov = "openrouter" if "OpenRouter" in selected_prov_label else "bedrock"
+    if new_prov != st.session_state.provider:
+        st.session_state.provider = new_prov
+        st.session_state.supervisor_model = OPENROUTER_MODEL if new_prov == "openrouter" else BEDROCK_MODEL_ID
+        st.session_state.subagent_model = OPENROUTER_MODEL if new_prov == "openrouter" else BEDROCK_MODEL_ID
+        st.session_state.ctx.model_config["supervisor"] = st.session_state.supervisor_model
+        st.session_state.ctx.model_config["sql"] = st.session_state.supervisor_model
+        st.session_state.ctx.model_config["profiler"] = st.session_state.subagent_model
+        st.session_state.ctx.model_config["semantic"] = st.session_state.subagent_model
+        st.session_state.ctx.model_config["stats"] = st.session_state.subagent_model
+        st.rerun()
+
+    if st.session_state.provider == "openrouter":
+        or_models = ["openai/gpt-4o-mini", "deepseek/deepseek-chat", "anthropic/claude-3.5-haiku", "Custom"]
+        curr_m = st.session_state.supervisor_model
+        m_idx = or_models.index(curr_m) if curr_m in or_models else 3
+        ch_m = st.selectbox("Model", or_models, index=m_idx)
+        if ch_m == "Custom":
+            cust_m = st.text_input("Custom Model ID", value=curr_m)
+            st.session_state.supervisor_model = cust_m
+            st.session_state.subagent_model = cust_m
+        else:
+            st.session_state.supervisor_model = ch_m
+            st.session_state.subagent_model = ch_m
+        st.caption("Using local OpenRouter API key from `.env`.")
+    else:
+        st.text_input("Bedrock Model ID", value=st.session_state.bedrock_model_id, disabled=True)
+        st.caption(f"Region: `{st.session_state.aws_region}`")
+
+    st.caption(f"Session: `{st.session_state.session_id[:8]}` (Isolated State)")
+
     st.markdown("---")
     if st.button("🗑️ Clear Conversation", use_container_width=True):
+        st.session_state.chat_history = []
+        st.session_state.ctx.artifact_store.reset()
+        st.rerun()
         st.session_state.chat_history = []
         st.rerun()
 
@@ -264,19 +345,30 @@ st.markdown("""
 
 # --- 6. Quick Suggested Analytical Prompt Chips
 st.markdown("##### 💡 Suggested Questions:")
-benchmark_queries = [
-    "Which product categories drive the highest revenue, and what is their return rate?",
-    "Are corporate segment buyers in the Western region receiving higher average discounts than consumer buyers?",
-    "Identify any revenue or unit price outliers across our transactions.",
-    "Show the monthly revenue trajectory across 2025 as a line chart.",
-    "Calculate the correlation between discount percentage and returned order status."
-]
+is_oracle_active = st.session_state.get("active_dataset_name") == "Oracle Database (FREEPDB1)"
+if is_oracle_active:
+    benchmark_queries = [
+        "Give me the claim details of user Rahul.",
+        "What is the total claim amount across all claims?",
+        "Which users have zero filed claims?",
+        "Show claim distribution by status and claim type.",
+        "Plot monthly claims filed trajectory as a line chart."
+    ]
+    labels = ["👤 Rahul Claims", "💰 Total Claim Amount", "🚫 Zero-Claim Users", "📊 Claim Status & Types", "📈 Monthly Trajectory"]
+else:
+    benchmark_queries = [
+        "Which product categories drive the highest revenue, and what is their return rate?",
+        "Are corporate segment buyers in the Western region receiving higher average discounts than consumer buyers?",
+        "Identify any revenue or unit price outliers across our transactions.",
+        "Show the monthly revenue trajectory across 2025 as a line chart.",
+        "Calculate the correlation between discount percentage and returned order status."
+    ]
+    labels = ["📊 Category Revenue", "🎯 Segment Discounts", "🔍 Outliers Check", "📈 Monthly Trajectory", "🔗 Return Correlation"]
 
 cols_b = st.columns(len(benchmark_queries))
 selected_benchmark = None
 for idx, b_query in enumerate(benchmark_queries):
     with cols_b[idx]:
-        labels = ["📊 Category Revenue", "🎯 Segment Discounts", "🔍 Outliers Check", "📈 Monthly Trajectory", "🔗 Return Correlation"]
         if st.button(labels[idx], help=b_query, use_container_width=True):
             selected_benchmark = b_query
 
@@ -337,8 +429,6 @@ def render_thinking_accordion(traces, sql, dataframe, is_initially_open=False):
                 for t in profiler_traces:
                     st.caption(t.get("details", ""))
 
-from core.metadata_store import SQLiteMetadataStore
-
 def clean_markdown_output(text: str) -> str:
     r"""
     Sanitizes LLM markdown for clean Streamlit rendering:
@@ -375,6 +465,16 @@ for msg in st.session_state.chat_history:
             st.markdown(msg["content"])
     else:
         with st.chat_message("assistant"):
+            # Render status warning / error banner if non-success
+            if msg.get("status") == "rejected_query":
+                st.warning("⚠️ **Security Policy Rejection**: This analytical query violated security boundaries and was rejected.")
+            elif msg.get("status") == "out_of_scope":
+                st.info("ℹ️ **Out of Scope**: Question is outside the domain of connected tabular data.")
+            elif msg.get("status") == "timeout":
+                st.error("⏱️ **Execution Timeout**: Query execution deadline exceeded.")
+            elif msg.get("error"):
+                st.error(f"❌ **Execution Notice**: {msg.get('error')}")
+
             # 1. Collapsed Thinking Accordion (Kimi / DeepSeek / Perplexity style)
             render_thinking_accordion(
                 traces=msg.get("trace", []),
@@ -436,18 +536,24 @@ if query_to_run:
                 "semantic": st.session_state.subagent_model,
                 "stats": st.session_state.subagent_model
             }
-            
-            supervisor = OrchestratorSupervisor(
-                model_config=model_config
-            )
-            
-            start_time = time.time()
 
-            try:
-                result = supervisor.analyze(query_to_run, st.session_state.active_table)
-            finally:
-                store.remove_listener(live_trace_listener)
-            duration_ms = round((time.time() - start_time) * 1000, 1)
+            ctx = st.session_state.ctx
+            with ctx.activate():
+                supervisor = OrchestratorSupervisor(
+                    api_key=OPENROUTER_API_KEY if st.session_state.provider == "openrouter" else None,
+                    model_config=model_config
+                )
+                
+                start_time = time.time()
+                try:
+                    result = supervisor.analyze(
+                        query_to_run,
+                        st.session_state.active_table,
+                        conversation_history=st.session_state.chat_history[:-1]
+                    )
+                finally:
+                    store.remove_listener(live_trace_listener)
+                duration_ms = round((time.time() - start_time) * 1000, 1)
             
             # Automatically collapse thinking box as soon as answer is ready
             step_count = len(result.get("trace", []))
@@ -480,24 +586,14 @@ if query_to_run:
                     mime="text/csv",
                     use_container_width=True
                 )
-                
-        # Persist query execution history to SQLite metadata store
-        try:
-            SQLiteMetadataStore.get_instance().log_query_execution(
-                table_name=st.session_state.active_table or "unknown",
-                user_prompt=query_to_run,
-                executed_sql=result.get("sql"),
-                status="success" if not result.get("error") else "error",
-                row_count=len(df_res) if df_res is not None else 0,
-                duration_ms=duration_ms
-            )
-        except Exception as sqle:
-            logger.debug(f"SQLite log notice: {sqle}")
 
         # Persist to conversational session state
         st.session_state.chat_history.append({
             "role": "assistant",
             "content": summary_text,
+            "status": result.get("status", "success"),
+            "error": result.get("error"),
+            "error_type": result.get("error_type"),
             "sql": result.get("sql"),
             "dataframe": df_res,
             "chart": chart_obj,

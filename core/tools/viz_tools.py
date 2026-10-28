@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from core.db_engine import DatabaseEngine
+from core.contracts import resolve_data_source, AnalyticsInput
 from core.tools.artifact_store import ArtifactStore
 from config import logger
 
@@ -59,32 +59,24 @@ def generate_plotly_chart(
     Returns:
         str: Summary confirmation of the generated chart rendered on the agent canvas.
     """
-    engine = DatabaseEngine.get_instance()
+    ds = resolve_data_source()
     store = ArtifactStore.get_instance()
     store.add_trace("Visualization Agent", "Building Chart", f"{chart_type.upper()}: {title}")
     
     # 1. Fetch data
     df = None
     if sql_query:
-        df, err = engine.execute_sql(sql_query)
+        df, err = ds.execute_sql(sql_query)
         if err or df is None or df.empty:
             return f"Error executing chart SQL query: {err}"
     else:
-        # Check if table exists in DuckDB
-        schema = engine.get_table_schema(table_name)
-        if not schema:
+        df, err = AnalyticsInput.get_dataframe(table_name, limit=2000, source=ds)
+        if err or df is None or df.empty:
             last_df = store.get_all().get("last_dataframe")
             if last_df is not None and not last_df.empty:
                 df = last_df.copy()
-        
-        if df is None:
-            df, err = engine.execute_sql(f"SELECT * FROM {table_name} LIMIT 2000")
-            if err or df is None or df.empty:
-                last_df = store.get_all().get("last_dataframe")
-                if last_df is not None and not last_df.empty:
-                    df = last_df.copy()
-                else:
-                    return f"Error fetching data from table '{table_name}': {err}"
+            else:
+                return f"Error fetching data from table '{table_name}': {err}"
 
     # If requested columns are not in current df, check if last_dataframe contains them
     last_df = store.get_all().get("last_dataframe")

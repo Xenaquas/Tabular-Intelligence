@@ -1,0 +1,13 @@
+{
+  "total_users": 30,
+  "total_claims": 70,
+  "total_claim_amount": 2903820.00,
+  "rahul_candidates": 3,
+  "user_1002_claims": 5,
+  "users_with_zero_claims": 3,
+  "rahul_candidate_details": [
+    {"user_id": 1001, "full_name": "Rahul Sharma", "email": "rahul.sharma.1001@example.test", "city": "Mumbai", "claim_count": 6},
+    {"user_id": 1002, "full_name": "Rahul Mehta", "email": "rahul.mehta.1002@example.test", "city": "Pune", "claim_count": 5},
+    {"user_id": 1003, "full_name": "Rahul Sharma", "email": "rahul.sharma.1003@example.test", "city": "Delhi", "claim_count": 4}
+  ]
+}

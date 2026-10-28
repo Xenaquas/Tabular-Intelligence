@@ -26,6 +26,7 @@ env/
 data/metadata.db
 data/*.db
 data/*.duckdb
+*.bak
 data/faiss/
 *.index
 *.faiss
@@ -39,3 +40,4 @@ Thumbs.db
 __MACOSX/
 .idea/
 .vscode/
+.playwright-cli/

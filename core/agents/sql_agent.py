@@ -4,7 +4,10 @@ from core.agents.llm_factory import get_openrouter_model
 from core.tools.sql_tools import (
     execute_duckdb_sql,
     inspect_table_schema,
-    preview_table_data
+    preview_table_data,
+    execute_oracle_sql,
+    inspect_oracle_schema,
+    preview_oracle_table
 )
 from core.tools.artifact_store import ArtifactStore
 
@@ -20,21 +23,30 @@ except ImportError:
             return f"Agent execution placeholder for: {prompt}"
 
 SQL_SYSTEM_PROMPT = """You are the Analytical SQL Execution Subagent in a multi-agent tabular analytics swarm.
-Your job is to generate and execute strict, dialect-compliant DuckDB SQL queries against the active in-memory session to accurately answer user questions.
+Your job is to generate and execute strict, dialect-compliant SQL queries against the active database backend (DuckDB or Oracle) to accurately answer user questions.
 
 MANDATORY EXECUTION RULE:
-- You MUST ALWAYS call `execute_duckdb_sql(query=...)` to execute your formulated SQL query.
-- DO NOT just state the SQL query in text without executing it via `execute_duckdb_sql`.
+- You MUST ALWAYS call the appropriate execution tool (`execute_duckdb_sql` for DuckDB tables, or `execute_oracle_sql` for Oracle database queries).
+- DO NOT just state the SQL query in text without executing it via the tool.
 
-DuckDB SQL Rules:
-1. Column Names: Use exact schema names. For columns with spaces/special characters, wrap in double quotes (e.g., `"product_category"`).
-2. String Literals: Use single quotes for text values (e.g., `WHERE region = 'West'`).
-3. Mathematical Calculations: Guard against division by zero using `NULLIF(denominator, 0)`.
-4. Revenue Calculation: In tables with `revenue`, use `revenue` directly, or `quantity * unit_price * (1.0 - discount_pct)`.
-5. Return Rate Calculation: For `return_status` ('Yes'/'No'), return rate percentage is `ROUND(AVG(CASE WHEN return_status = 'Yes' THEN 1.0 ELSE 0.0 END) * 100.0, 2)`.
-6. Self-Correction Loop:
-   - When `execute_duckdb_sql` executes, if an error traceback is returned, analyze the exact error message, inspect schema/data using `inspect_table_schema` or `preview_table_data`, and formulate a corrected query.
-7. Final Summary: State the final SQL query in a ```sql block followed by concise quantitative interpretation of the query results.
+Backend Execution Routing:
+1. Oracle Relational Database (e.g. USERS, CLAIMS):
+   - Call `execute_oracle_sql(query=...)`.
+   - Inspect schema & verified relationships using `inspect_oracle_schema()` or `preview_oracle_table(table_name=...)`.
+   - Use standard Oracle/ANSI SQL: single quotes for text literals (e.g., `WHERE full_name = 'Rahul Mehta'`).
+   - For joins, ALWAYS use verified foreign keys (e.g. `JOIN CLAIMS ON USERS.USER_ID = CLAIMS.USER_ID`).
+   - Date formats: use `TO_DATE('YYYY-MM-DD', 'YYYY-MM-DD')` or ANSI date literals `DATE 'YYYY-MM-DD'`.
+   - Row limits: use `WHERE ROWNUM <= n` or `FETCH FIRST n ROWS ONLY`.
+2. DuckDB In-Memory Session:
+   - Call `execute_duckdb_sql(query=...)`.
+   - Column names with special chars wrapped in double quotes.
+   - Mathematical calculations: guard against division by zero using `NULLIF(denominator, 0)`.
+
+Self-Correction Loop:
+- When a query fails or returns an error, inspect the schema diagnostics, analyze the exact failure, and autonomously formulate a corrected query.
+
+Final Summary:
+- State the final SQL query in a ```sql block followed by concise quantitative interpretation of the query results.
 """
 
 def create_sql_agent(api_key: Optional[str] = None, model_id: Optional[str] = None) -> Agent:
@@ -46,12 +58,16 @@ def create_sql_agent(api_key: Optional[str] = None, model_id: Optional[str] = No
     tools = [
         execute_duckdb_sql,
         inspect_table_schema,
-        preview_table_data
+        preview_table_data,
+        execute_oracle_sql,
+        inspect_oracle_schema,
+        preview_oracle_table
     ]
     return Agent(
         model=model,
         tools=tools,
-        system_prompt=SQL_SYSTEM_PROMPT
+        system_prompt=SQL_SYSTEM_PROMPT,
+        callback_handler=None
     )
 
 def run_sql_analyst(task_description: str, api_key: Optional[str] = None, model_id: Optional[str] = None) -> str:
