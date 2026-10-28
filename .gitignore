@@ -1,0 +1,41 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+credentials
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Streamlit local secrets
+.streamlit/secrets.toml
+
+# Runtime state / generated data
+data/metadata.db
+data/*.db
+data/*.duckdb
+data/faiss/
+*.index
+*.faiss
+scratch/
+logs/
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+__MACOSX/
+.idea/
+.vscode/

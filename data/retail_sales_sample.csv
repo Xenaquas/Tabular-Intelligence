@@ -1,0 +1,101 @@
+order_id,order_date,customer_segment,region,product_category,product_name,quantity,unit_price,discount_pct,shipping_cost,return_status
+ORD-2025-001,2025-01-05,Consumer,West,Electronics,Wireless Noise-Canceling Headphones,2,199.99,0.05,12.50,No
+ORD-2025-002,2025-01-08,Corporate,West,Technology,4K Ultra HD Monitor 27-inch,3,349.50,0.15,25.00,No
+ORD-2025-003,2025-01-12,Consumer,East,Furniture,Ergonomic Mesh Office Chair,1,289.00,0.00,18.00,Yes
+ORD-2025-004,2025-01-16,Small Business,Central,Office Supplies,Heavy Duty Paper Shredder,2,89.99,0.10,8.50,No
+ORD-2025-005,2025-01-20,Corporate,South,Technology,Enterprise Cloud Server Rack,1,4999.00,0.20,150.00,No
+ORD-2025-006,2025-01-25,Consumer,West,Apparel,Waterproof Hiking Jacket,2,120.00,0.05,7.00,No
+ORD-2025-007,2025-01-29,Home Office,East,Electronics,Mechanical RGB Keyboard,4,79.99,0.00,9.00,No
+ORD-2025-008,2025-02-02,Corporate,West,Furniture,Standing Desk Converter 36-inch,2,249.00,0.18,30.00,No
+ORD-2025-009,2025-02-06,Consumer,Central,Technology,Smart Wi-Fi Security Camera 2-Pack,3,129.99,0.25,11.00,Yes
+ORD-2025-010,2025-02-10,Small Business,South,Office Supplies,Multifunction Laser Printer,1,329.00,0.08,22.00,No
+ORD-2025-011,2025-02-14,Consumer,West,Electronics,Bluetooth Portable Speaker,5,49.99,0.00,6.50,No
+ORD-2025-012,2025-02-18,Corporate,East,Technology,Dual-Band Mesh Wi-Fi 6 Router,4,189.00,0.12,14.00,No
+ORD-2025-013,2025-02-22,Home Office,West,Furniture,Executive Leather High-Back Chair,1,399.00,0.10,35.00,No
+ORD-2025-014,2025-02-26,Consumer,Central,Apparel,Running Shoes Breathable,2,85.00,0.15,8.00,Yes
+ORD-2025-015,2025-03-02,Corporate,West,Technology,27-inch Curved Gaming Display,2,399.99,0.14,28.00,No
+ORD-2025-016,2025-03-06,Small Business,East,Office Supplies,Recycled Copy Paper 10-Ream Box,10,45.00,0.05,15.00,No
+ORD-2025-017,2025-03-10,Consumer,South,Electronics,Noise-Cancelling Earbuds,1,149.00,0.00,5.00,No
+ORD-2025-018,2025-03-15,Corporate,Central,Technology,10GbE Network Switch 24-Port,1,850.00,0.15,40.00,No
+ORD-2025-019,2025-03-20,Consumer,West,Home & Kitchen,Stainless Steel Air Fryer XL,1,139.99,0.20,12.00,Yes
+ORD-2025-020,2025-03-25,Home Office,East,Furniture,Solid Wood L-Shaped Corner Desk,1,549.00,0.05,65.00,No
+ORD-2025-021,2025-04-01,Corporate,West,Technology,Ultra-Thin Laptop 16GB RAM,3,1199.00,0.16,30.00,No
+ORD-2025-022,2025-04-05,Consumer,South,Apparel,Fleece Winter Pullover,3,55.00,0.10,7.50,No
+ORD-2025-023,2025-04-09,Small Business,Central,Electronics,Heavy Duty Conference Speakerphone,2,210.00,0.10,14.00,No
+ORD-2025-024,2025-04-14,Consumer,West,Furniture,Memory Foam Seat Cushion,4,34.99,0.00,5.50,No
+ORD-2025-025,2025-04-19,Corporate,East,Technology,Enterprise NAS Storage Server 32TB,1,2899.00,0.22,85.00,No
+ORD-2025-026,2025-04-24,Consumer,West,Office Supplies,Dry Erase Magnetic Whiteboard 48x36,2,79.00,0.05,18.00,No
+ORD-2025-027,2025-04-28,Home Office,South,Electronics,HD Webcam 1080p with Ring Light,2,69.99,0.10,6.00,No
+ORD-2025-028,2025-05-03,Corporate,West,Technology,Thunderbolt 4 Docking Station,5,229.00,0.15,16.00,No
+ORD-2025-029,2025-05-08,Consumer,Central,Furniture,Mid-Century Modern Bookshelf,1,219.00,0.25,28.00,Yes
+ORD-2025-030,2025-05-13,Small Business,East,Office Supplies,Thermal Label Printer,3,115.00,0.08,9.50,No
+ORD-2025-031,2025-05-18,Corporate,South,Technology,Rackmount Uninterruptible Power Supply (UPS),2,650.00,0.10,45.00,No
+ORD-2025-032,2025-05-23,Consumer,West,Electronics,Smart Fitness Tracker Watch,3,89.95,0.05,6.00,No
+ORD-2025-033,2025-05-28,Home Office,Central,Furniture,Adjustable Footrest Ergonomic,2,29.99,0.00,4.50,No
+ORD-2025-034,2025-06-02,Corporate,West,Technology,Pro Wireless Laser Mouse,8,69.99,0.18,12.00,No
+ORD-2025-035,2025-06-07,Consumer,East,Apparel,Polarized Sports Sunglasses,2,45.00,0.30,4.00,Yes
+ORD-2025-036,2025-06-12,Small Business,West,Technology,All-in-One POS Touchscreen Terminal,2,799.00,0.12,35.00,No
+ORD-2025-037,2025-06-17,Consumer,South,Home & Kitchen,Automatic Espresso Coffee Machine,1,450.00,0.10,22.00,No
+ORD-2025-038,2025-06-22,Corporate,Central,Furniture,Steel 4-Drawer Filing Cabinet,2,189.00,0.15,40.00,No
+ORD-2025-039,2025-06-27,Consumer,West,Electronics,Noise-Isolating Studio Headphones,2,159.00,0.08,9.00,No
+ORD-2025-040,2025-07-02,Home Office,East,Technology,Portable USB-C External Monitor 15.6,2,179.99,0.05,10.00,No
+ORD-2025-041,2025-07-07,Corporate,West,Technology,Enterprise Laser Color Copier,1,1650.00,0.20,95.00,No
+ORD-2025-042,2025-07-12,Consumer,Central,Furniture,Contemporary 3-Piece Sectional Sofa,1,1299.00,0.28,120.00,Yes
+ORD-2025-043,2025-07-17,Small Business,South,Office Supplies,Laminator Machine Heavy Duty,2,64.99,0.00,8.00,No
+ORD-2025-044,2025-07-22,Consumer,West,Apparel,Thermal Running Tights,3,42.00,0.10,5.00,No
+ORD-2025-045,2025-07-27,Corporate,East,Technology,Network Security Firewall Appliance,1,1450.00,0.12,28.00,No
+ORD-2025-046,2025-08-01,Home Office,West,Furniture,Dual Monitor Steel Arm Mount,3,59.99,0.00,8.50,No
+ORD-2025-047,2025-08-06,Consumer,South,Electronics,Smart Video Doorbell HD,2,119.00,0.15,7.00,No
+ORD-2025-048,2025-08-11,Corporate,West,Technology,24-inch IPS LED Business Monitor,6,189.00,0.17,45.00,No
+ORD-2025-049,2025-08-16,Consumer,Central,Home & Kitchen,Robot Vacuum and Mop Combo,1,389.00,0.30,18.00,Yes
+ORD-2025-050,2025-08-21,Small Business,East,Office Supplies,Filing Folders Box of 100,5,22.50,0.00,6.00,No
+ORD-2025-051,2025-08-26,Corporate,Central,Technology,16-Port Gigabit Ethernet Switch,3,149.00,0.10,12.00,No
+ORD-2025-052,2025-08-31,Consumer,West,Electronics,True Wireless Bluetooth Earbuds,4,59.99,0.05,6.00,No
+ORD-2025-053,2025-09-05,Home Office,South,Furniture,Electric Height-Adjustable Standing Desk,1,499.00,0.10,55.00,No
+ORD-2025-054,2025-09-10,Corporate,West,Technology,Noise-Canceling UC Headset with Mic,10,129.00,0.19,20.00,No
+ORD-2025-055,2025-09-15,Consumer,East,Apparel,Packable Windbreaker Jacket,2,65.00,0.25,6.00,Yes
+ORD-2025-056,2025-09-20,Small Business,West,Technology,Barcode Scanner 2D QR Handheld,4,89.00,0.08,10.00,No
+ORD-2025-057,2025-09-25,Consumer,Central,Home & Kitchen,Digital Air Fryer Toaster Oven,1,179.99,0.15,16.00,No
+ORD-2025-058,2025-09-30,Corporate,East,Furniture,Conference Room Executive Table,1,1850.00,0.15,140.00,No
+ORD-2025-059,2025-10-05,Consumer,West,Electronics,Smart Digital Photo Frame 10-inch,2,99.99,0.00,8.00,No
+ORD-2025-060,2025-10-10,Home Office,South,Technology,External SSD USB-C 2TB Rugged,2,169.00,0.05,7.00,No
+ORD-2025-061,2025-10-15,Corporate,West,Technology,Enterprise Server Blade Xeon,2,3200.00,0.21,80.00,No
+ORD-2025-062,2025-10-20,Consumer,East,Furniture,Reclining Fabric Armchair,1,349.00,0.22,45.00,Yes
+ORD-2025-063,2025-10-25,Small Business,Central,Office Supplies,Heavy Duty 3-Hole Punch,4,35.00,0.00,7.00,No
+ORD-2025-064,2025-10-30,Consumer,West,Apparel,Merino Wool Crewneck Sweater,2,89.00,0.10,6.00,No
+ORD-2025-065,2025-11-04,Corporate,South,Technology,Wireless Presentation Gateway Box,2,499.00,0.12,18.00,No
+ORD-2025-066,2025-11-09,Home Office,West,Furniture,Under-Desk Walking Pad Treadmill,1,299.00,0.08,35.00,No
+ORD-2025-067,2025-11-14,Consumer,Central,Electronics,Action Camera 4K Waterproof,1,189.99,0.15,8.00,No
+ORD-2025-068,2025-11-19,Corporate,West,Technology,Smart Interactive Digital Whiteboard 65-inch,1,2499.00,0.18,120.00,No
+ORD-2025-069,2025-11-24,Consumer,East,Home & Kitchen,Multi-Cooker Pressure Cooker 8Qt,1,119.00,0.30,14.00,Yes
+ORD-2025-070,2025-11-29,Small Business,West,Technology,Compact Receipt Printer USB/Ethernet,3,139.00,0.05,12.00,No
+ORD-2025-071,2025-12-03,Corporate,Central,Furniture,Mesh Drafting Stool Tall Chair,3,179.00,0.14,28.00,No
+ORD-2025-072,2025-12-07,Consumer,West,Electronics,High-Speed Wireless Charger Pad 3-in-1,4,39.99,0.00,5.00,No
+ORD-2025-073,2025-12-11,Home Office,East,Technology,Noise-Cancelling USB Microphone,2,99.00,0.05,8.00,No
+ORD-2025-074,2025-12-15,Corporate,West,Technology,Enterprise SAN Fiber Switch 16-Port,1,3850.00,0.22,90.00,No
+ORD-2025-075,2025-12-19,Consumer,South,Furniture,Wooden End Table Nightstand 2-Set,1,159.00,0.20,22.00,Yes
+ORD-2025-076,2025-12-23,Small Business,Central,Office Supplies,Heavy Duty Stapler with 5000 Staples,3,28.00,0.00,5.00,No
+ORD-2025-077,2025-12-27,Consumer,West,Apparel,Water-Resistant Winter Parka,1,195.00,0.12,9.00,No
+ORD-2025-078,2025-01-14,Corporate,West,Technology,Enterprise Video Bar 4K AI Camera,2,899.00,0.16,24.00,No
+ORD-2025-079,2025-02-17,Consumer,East,Home & Kitchen,Cast Iron Dutch Oven 6-Quart,1,89.99,0.25,18.00,Yes
+ORD-2025-080,2025-03-12,Small Business,West,Technology,UPS Battery Backup 1500VA,3,199.00,0.10,35.00,No
+ORD-2025-081,2025-04-18,Corporate,South,Furniture,Modular Reception Lounge Chair,2,329.00,0.15,50.00,No
+ORD-2025-082,2025-05-21,Consumer,Central,Electronics,Wireless Over-Ear Gaming Headset,2,119.00,0.05,8.00,No
+ORD-2025-083,2025-06-25,Home Office,West,Technology,Full HD Portable Projector 1080p,1,249.00,0.00,12.00,No
+ORD-2025-084,2025-07-29,Corporate,West,Technology,Managed PoE+ Network Switch 48-Port,1,1250.00,0.18,32.00,No
+ORD-2025-085,2025-08-23,Consumer,East,Furniture,Mid-Century Accent Velvet Chair,1,269.00,0.30,35.00,Yes
+ORD-2025-086,2025-09-27,Small Business,Central,Office Supplies,Dry Erase Markers 36-Pack Assorted,6,18.99,0.00,4.50,No
+ORD-2025-087,2025-10-31,Consumer,West,Apparel,Lightweight Down Puffer Vest,2,75.00,0.08,5.50,No
+ORD-2025-088,2025-11-25,Corporate,South,Technology,High-Performance Workstation i9 64GB,2,2799.00,0.15,60.00,No
+ORD-2025-089,2025-12-14,Home Office,West,Furniture,Anti-Fatigue Standing Desk Mat,3,49.99,0.00,7.00,No
+ORD-2025-090,2025-01-28,Consumer,Central,Electronics,Smart Indoor Air Quality Monitor,2,89.00,0.15,6.50,No
+ORD-2025-091,2025-02-27,Corporate,West,Technology,27-inch 4K Color-Accurate Designer Monitor,3,599.00,0.17,36.00,No
+ORD-2025-092,2025-03-29,Consumer,East,Home & Kitchen,Cordless Stick Vacuum Cleaner,1,229.00,0.22,14.00,Yes
+ORD-2025-093,2025-04-30,Small Business,West,Technology,Heavy Duty Document Scanner 60ppm,1,649.00,0.10,18.00,No
+ORD-2025-094,2025-05-30,Corporate,Central,Furniture,Ergonomic Drafting Chair with Flip Arms,2,219.00,0.12,30.00,No
+ORD-2025-095,2025-06-30,Consumer,South,Electronics,Bluetooth Soundbar with Wireless Subwoofer,1,169.00,0.05,15.00,No
+ORD-2025-096,2025-07-31,Home Office,West,Technology,Ergonomic Split Mechanical Keyboard,2,139.00,0.00,8.00,No
+ORD-2025-097,2025-08-30,Corporate,West,Technology,Dual-Socket Rack Server 128GB RAM,1,4499.00,0.20,110.00,No
+ORD-2025-098,2025-09-29,Consumer,East,Furniture,Solid Oak Entryway Bench with Storage,1,289.00,0.25,40.00,Yes
+ORD-2025-099,2025-10-29,Small Business,South,Office Supplies,Heavy Duty Electric Pencil Sharpener,4,29.99,0.00,5.00,No
+ORD-2025-100,2025-11-28,Consumer,West,Apparel,Waterproof Trail Running Jacket,2,110.00,0.10,7.00,No
