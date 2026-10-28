@@ -6,8 +6,8 @@ from config import logger
 
 class DatabaseEngine:
     """
-    Thread-safe in-memory DuckDB database engine for tabular analytics.
-    Maintains session isolation, dataframe registration, and safe SQL execution with error feedback.
+    Process-wide DuckDB engine with serialized queries and dataframe registration.
+    SQL restrictions and per-user isolation are not implemented in this baseline.
     """
     _instance = None
     _lock = threading.Lock()
@@ -90,7 +90,7 @@ class DatabaseEngine:
         """
         with self._query_lock:
             try:
-                # Basic safety sanitization
+                # Whitespace trimming only; this is not SQL validation.
                 clean_query = query.strip().rstrip(";")
                 logger.info(f"Executing DuckDB SQL: {clean_query}")
                 
