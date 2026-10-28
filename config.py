@@ -1,3 +1,7 @@
+from core.runtime import require_supported_python
+
+require_supported_python()
+
 import os
 import logging
 from pathlib import Path
@@ -42,7 +46,7 @@ NOMIC_EMBED_MODEL = os.getenv("NOMIC_EMBED_MODEL", "nomic-ai/nomic-embed-text-v1
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 # OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
-# Data & Execution Limits
+# Reserved settings; the active agents/index do not enforce these values yet.
 MAX_CATEGORICAL_CARDINALITY = int(os.getenv("MAX_CATEGORICAL_CARDINALITY", "2000"))
 MAX_SQL_RETRY = int(os.getenv("MAX_SQL_RETRY", "3"))
 
